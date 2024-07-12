@@ -42,7 +42,7 @@ void loop() {
   // 10초가 경과했으면 서버에 데이터 전송
   if (millis() - lastConnectionTime > postingInterval) {
     if (client.connected()) {
-      httpRequest();
+      sendData();
     } else {
       reconnect();
     }
@@ -60,10 +60,10 @@ void read_request() {
   }
 }
 
-// 서버에 HTTP 요청 전송
-void httpRequest() {
+// 서버에 TCP로 데이터 송신
+void sendData() {
   String message = "mipmip" + String(messageCounter); // 증가하는 숫자를 포함한 메시지 생성
-  client.println(message); // 메시지 전송
+  client.print(message); // 메시지 전송
   Serial.println("Sent: " + message); // 전송 메시지 출력
   lastConnectionTime = millis(); // 마지막 연결 시간 갱신
   messageCounter++; // 메시지 카운터 증가
