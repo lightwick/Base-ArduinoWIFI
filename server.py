@@ -77,8 +77,10 @@ class TCPHandler(threading.Thread):
         try:
             with self.conn:
                 print('Connected by', self.addr)
-                data = self.conn.recv(1024)
-                if data:
+                while not stop_event.is_set():
+                    data = self.conn.recv(1024)
+                    if not data:
+                        break
                     message = data.decode().strip()
                     print("Received:", message)
                     if message.startswith("mipmip"):
@@ -106,12 +108,18 @@ def tcp_server():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((TCP_HOST, TCP_PORT))
         s.listen()
+        s.settimeout(15.0)  # Set timeout to allow periodic checking of stop_event
+        
         print(f"TCP Server listening on port {TCP_PORT}")
 
         while not stop_event.is_set():
-            conn, addr = s.accept()
-            handler = TCPHandler(conn, addr)
-            handler.start()
+            try:
+                conn, addr = s.accept()
+                print(f"Accepted connection from {addr}")
+                handler = TCPHandler(conn, addr)
+                handler.start()
+            except socket.timeout:
+                continue
 
 def http_server():
     os.chdir('.')  # Ensure the server is serving from the current directory
