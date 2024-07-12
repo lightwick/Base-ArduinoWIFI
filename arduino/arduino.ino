@@ -7,7 +7,7 @@ int status = WL_IDLE_STATUS;
 WiFiClient client;
 
 unsigned long lastConnectionTime = 0; // 마지막 서버 연결 시간 (밀리초)
-const unsigned long postingInterval = 10L * 1000L; // 업데이트 간격 (밀리초)
+const unsigned long postingInterval = 5L * 1000L; // 업데이트 간격 (밀리초)
 int messageCounter = 0; // 메시지 카운터 초기화
 
 void setup() {
@@ -62,7 +62,8 @@ void read_request() {
 
 // 서버에 TCP로 데이터 송신
 void sendData() {
-  String message = "mipmip" + String(messageCounter); // 증가하는 숫자를 포함한 메시지 생성
+  // String message = "mipmip" + String(messageCounter); // 증가하는 숫자를 포함한 메시지 생성
+  String message = String(random(0, 21));
   client.print(message); // 메시지 전송
   Serial.println("Sent: " + message); // 전송 메시지 출력
   lastConnectionTime = millis(); // 마지막 연결 시간 갱신

@@ -4,6 +4,8 @@ import queue
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 import os
 import keyboard
+import database
+import queue
 
 TCP_HOST = ''  # 모든 IP 주소에서 접속 허용
 TCP_PORT = 8000  # TCP 포트는 8000
@@ -12,10 +14,20 @@ HTTP_PORT = 8001  # HTTP 포트는 8001로 설정
 message_queue = queue.Queue()
 lock = threading.Lock()
 
+# 데이터베이스 연결
+dbFileName = "example.db"
+dbConnection = database.connection(dbFileName)
+
 # 서버 중지 플래그
 stop_event = threading.Event()
 
+# 가장 최근 6개의 센서 데이터 저장
+q = queue.Queue(maxsize=6)
+
 def update_html(message):
+    # Extract the latest sensor data from the queue
+    recentData = list(q.queue)
+
     html_content = f"""<!doctype html>
 <html>
 <head>
@@ -49,17 +61,43 @@ def update_html(message):
         }}
     }}
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript">
         // 5초마다 페이지 새로고침
         setInterval(function() {{
             window.location.reload();
         }}, 5000);
+
+        window.onload = function() {{
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var myChart = new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: [{', '.join([str(i+1) for i in range(len(recentData))])}],
+                    datasets: [{{
+                        label: 'Sensor Data',
+                        data: [{', '.join(map(str, recentData))}],
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }}]
+                }},
+                options: {{
+                    scales: {{
+                        y: {{
+                            beginAtZero: true
+                        }}
+                    }}
+                }}
+            }});
+        }};
     </script>
 </head>
 <body>
     <div>
         <h1>Message Received</h1>
-        <p>{message}</p>
+        <p>Most Recent Data: {message}</p>
+        <canvas id="myChart" width="400" height="400"></canvas>
     </div>
 </body>
 </html>"""
@@ -83,13 +121,24 @@ class TCPHandler(threading.Thread):
                         break
                     message = data.decode().strip()
                     print("Received:", message)
+                    with lock:
+                            message_queue.put(message)
+
                     if message.startswith("mipmip"):
                         number = message[len("mipmip"):]
                         response = f"lablab{number}"
                         self.conn.sendall(response.encode())
                         print("Sent:", response)
-                        with lock:
-                            message_queue.put(message)
+                    else:
+                        try:
+                            receivedSensorData = int(message)
+                            if q.full():
+                                q.get()
+                            q.put(receivedSensorData)
+                            dbConnection.insertData(receivedSensorData)
+                        except Exception as e:
+                            print(f"Exception storing data into database: {e}")
+
         except Exception as e:
             print(f"Exception handling client {self.addr}: {e}")
 
