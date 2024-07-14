@@ -27,7 +27,7 @@ def read_config(config_file_path):
     return server, server_port
 
 # Path to the config.h file
-config_file_path = './config.h'
+config_file_path = './config_example.h'
 server, server_port = read_config(config_file_path)
 
 # Initialize TCP client
