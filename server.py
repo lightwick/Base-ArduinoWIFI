@@ -16,7 +16,8 @@ lock = threading.Lock()
 
 # 데이터베이스 연결
 dbFileName = "example.db"
-dbConnection = database.connection(dbFileName)
+filePath = os.path.join(os.path.dirname(__file__), dbFileName)
+dbConnection = database.connection(filePath)
 
 # 서버 중지 플래그
 stop_event = threading.Event()
