@@ -251,20 +251,22 @@ class TCPHandler(threading.Thread):
                     message = data.decode().strip()
                     print("Received:", message)
                     with lock:
-                            message_queue.put(message)
+                        message_queue.put(message)
 
                     if message.startswith("mipmip"):
                         number = message[len("mipmip"):]
-                        response = f"lablab{number}"
-                        self.conn.sendall(response.encode())
-                        print("Sent:", response)
+                        if number.isdigit():
+                            response = f"lablab{number}"
+                            self.conn.sendall(response.encode())
+                            print("Sent:", response)
                     else:
                         try:
                             receivedSensorData = int(message)
                             if q.full():
                                 q.get()
-                            q.put(receivedSensorData)
-                            dbConnection.insertData(receivedSensorData)
+                            with lock:
+                                q.put(receivedSensorData)
+                                dbConnection.insertData(receivedSensorData)
                         except Exception as e:
                             print(f"Exception storing data into database: {e}")
 
@@ -313,9 +315,12 @@ def http_server():
 
 def html_updater():
     while not stop_event.is_set():
-        message = message_queue.get()
-        with lock:
-            update_html(message)
+        try:
+            message = message_queue.get()
+            with lock:
+                update_html(message)
+        except Exception as e:
+            print(f"Exception in HTML updater: {e}")
 
 def stop_server():
     print("Stopping server...")
