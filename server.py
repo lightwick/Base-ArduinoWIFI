@@ -158,23 +158,23 @@ def update_html(message):
             scene.add(pointLight);
 
             // 선반 생성 함수
-            function createShelf(x, y, z) {{
+            function createShelf(x, y, z, level) {{
                 const shelfGroup = new THREE.Group();
 
                 // 선반 프레임
                 const frameMaterial = new THREE.MeshStandardMaterial({{ color: 0x000000 }}); // 검정색
-                const frameGeometry = new THREE.BoxGeometry(0.1, 10, 0.1);
+                const frameGeometry = new THREE.BoxGeometry(0.1, level*2, 0.1);
 
                 for (let i = 0; i < 4; i++) {{
                     const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-                    frame.position.set(i % 2 === 0 ? -2.5 : 2.5, 5, i < 2 ? -2 : 2);
+                    frame.position.set(i % 2 === 0 ? -2.5 : 2.5, level, i < 2 ? -2 : 2);
                     shelfGroup.add(frame);
                 }}
 
                 const shelfMaterial = new THREE.MeshStandardMaterial({{ color: 0x000000 }}); // 검정색
                 const shelfGeometry = new THREE.BoxGeometry(5, 0.1, 4);
 
-                for (let i = 0; i < 5; i++) {{
+                for (let i = 0; i < level; i++) {{
                     const shelf = new THREE.Mesh(shelfGeometry, shelfMaterial);
                     shelf.position.set(0, i * 2, 0);
                     shelfGroup.add(shelf);
@@ -184,9 +184,17 @@ def update_html(message):
                 return shelfGroup;
             }}
 
+            // numBoxes의 크기에 따라 상자 그리기
+            let numBoxes = {message};
+            const maxBoxNum = 1000;
+            numBoxes = Math.min(numBoxes, maxBoxNum);
+
+            let shelfLevel = Math.floor(({message}-1) / 2) + 1;
+            shelfLevel = Math.max(4, shelfLevel) // 선반이 최소 5칸은 있도록 설정
+
             // 창고 선반 배치
-            const shelf1 = createShelf(-10, 0, 0);
-            const shelf2 = createShelf(10, 0, 0);
+            const shelf1 = createShelf(-10, 0, 0, shelfLevel);
+            const shelf2 = createShelf(10, 0, 0, shelfLevel);
             scene.add(shelf1);
             scene.add(shelf2);
 
@@ -201,11 +209,6 @@ def update_html(message):
 
             // 박스 배치
             const boxColors = [0xF5F5DC, 0xFFD700, 0xFF8C00, 0xFF4500]; // 베이지색, 금색, 주황색, 빨간색
-            
-            // numBoxes의 크기에 따라 상자 그리기
-            let numBoxes = {message};
-            const maxBoxNum = 6;
-            numBoxes = Math.min(numBoxes, maxBoxNum);
 
             for (let i = 0; i < numBoxes; i++) {{
                 const x = i % 2 === 0 ? -10 : 10;
@@ -327,6 +330,7 @@ def stop_server():
     stop_event.set()
 
 if __name__ == "__main__":
+    update_html(0)
     tcp_thread = threading.Thread(target=tcp_server)
     tcp_thread.start()
 
